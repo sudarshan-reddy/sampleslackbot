@@ -65,7 +65,6 @@ struct IssueReport {
 
 impl fmt::Display for Response {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut issue_list = String::new();
         if self.issues.len() == 0 {
             return write!(
                 f,
@@ -74,6 +73,7 @@ impl fmt::Display for Response {
             );
         }
 
+        let mut issue_list = String::new();
         let mut issues = vec::Vec::new();
         for issue in &self.issues {
             issues.push(IssueReport {
