@@ -66,6 +66,13 @@ struct IssueReport {
 impl fmt::Display for Response {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut issue_list = String::new();
+        if self.issues.len() == 0 {
+            return write!(
+                f,
+                r##"Great job @mbe-devs . No tickets to review.
+                Should we all take a day off?"##
+            );
+        }
 
         let mut issues = vec::Vec::new();
         for issue in &self.issues {
