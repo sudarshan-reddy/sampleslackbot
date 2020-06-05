@@ -1,5 +1,12 @@
+use bot::{Action, Jira, PostJiraInput, PostJiraToSlack, Slack};
 use reqwest::blocking::RequestBuilder;
 use std::env;
+
+use actix_web::{
+    get, web,
+    web::{Data, Json},
+    App, HttpRequest, HttpResponse, HttpServer,
+};
 
 mod bot;
 mod server;
@@ -7,7 +14,7 @@ mod server;
 static JQL_MBE_AWAITING_REVIEW: &str =
     "project%20%3D%20%22Mobile%20Backend%22%20and%20status%20%3D%20%22Awaiting%20Review%22";
 
-static addr: &str = "127.0.0.1:8001";
+static ADDR: &str = "127.0.0.1:8001";
 
 #[derive(Clone)]
 pub struct BasicAuth {
@@ -22,7 +29,7 @@ impl bot::Authorizer for BasicAuth {
 }
 
 #[actix_rt::main]
-async fn main() {
+async fn main() -> std::io::Result<()> {
     let user_name = env::var("JIRA_USER_NAME").expect("JIRA_USER_NAME");
     let api_token = env::var("JIRA_API_TOKEN").expect("JIRA_API_TOKEN");
     let slack_token = env::var("SLACK_BOT_TOKEN").expect("SLACK_BOT_TOKEN");
@@ -35,11 +42,13 @@ async fn main() {
     let jira = bot::Jira::new(Box::new(auth));
     let slack = bot::Slack::new(slack_token).unwrap();
 
-    let cfg = server::Config {
-        jira: jira,
-        slack: slack,
-    };
-
-    let s = server::Server::new(cfg);
-    s.run(addr.to_string()).await.unwrap();
+    let post_jira_to_slack = PostJiraToSlack::new(jira.clone(), slack.clone());
+    HttpServer::new(move || {
+        App::new()
+            .data(post_jira_to_slack.clone())
+            .service(web::resource("/invoke").route(web::post().to(server::call)))
+    })
+    .bind(&ADDR)?
+    .run()
+    .await
 }
