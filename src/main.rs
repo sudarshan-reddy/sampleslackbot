@@ -2,6 +2,7 @@ use reqwest::blocking::RequestBuilder;
 use std::env;
 
 mod bot;
+mod server;
 
 static JQL_MBE_AWAITING_REVIEW: &str =
     "project%20%3D%20%22Mobile%20Backend%22%20and%20status%20%3D%20%22Awaiting%20Review%22";
@@ -35,10 +36,12 @@ fn main() {
         .get_jira_issues(JQL_MBE_AWAITING_REVIEW.to_string())
         .unwrap();
 
-    println!("{}", mbe_awaiting_review_issues);
+    let issues_in_string: String = mbe_awaiting_review_issues.clone().into();
+    println!("{}", issues_in_string);
 
     let bot = bot::Slack::new(slack_token).unwrap();
 
+    //bot.post_message(slack_channel, &mbe_awaiting_review_issues)
     bot.post_message(slack_channel, &mbe_awaiting_review_issues)
         .unwrap();
 }
