@@ -41,9 +41,9 @@ struct IssueReport {
     priority: i64,
 }
 
-impl std::convert::Into<String> for Response {
-    fn into(self) -> String {
-        if self.issues.len() == 0 {
+impl std::convert::From<&Response> for std::string::String {
+    fn from(r: &Response) -> Self {
+        if r.issues.len() == 0 {
             return format!(
                 r##"Great job @mbe-devs . No tickets to review.
                 Should we all take a day off?"##
@@ -52,7 +52,7 @@ impl std::convert::Into<String> for Response {
 
         let mut issue_list = String::new();
         let mut issues = vec::Vec::new();
-        for issue in &self.issues {
+        for issue in &r.issues {
             issues.push(IssueReport {
                 issue_link: format!("https://zalora.atlassian.net/browse/{}", issue.key),
                 summary: issue.fields.summary.clone(),
@@ -81,12 +81,6 @@ impl std::convert::Into<String> for Response {
 "##,
             issue_list,
         )
-    }
-}
-
-impl std::convert::From<&Response> for std::string::String {
-    fn from(_: &Response) -> Self {
-        "".to_string()
     }
 }
 
@@ -149,6 +143,7 @@ impl Slack {
                 ..chat::PostMessageRequest::default()
             },
         )?;
+
         Ok(())
     }
 }
