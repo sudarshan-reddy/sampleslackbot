@@ -501,6 +501,7 @@ version = "0.1.0"
 dependencies = [
  "actix-rt",
  "actix-web",
+ "bytes",
  "chrono",
  "reqwest",
  "serde",

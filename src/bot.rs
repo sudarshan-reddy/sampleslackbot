@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use slack::chat;
 use slack_api as slack;
 use std::cmp::Ordering;
-use std::{fmt, result::Result, vec};
+use std::{result::Result, vec};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Response {
@@ -84,13 +84,33 @@ impl std::convert::From<&Response> for std::string::String {
     }
 }
 
-pub trait Authorizer {
+pub trait Authorizer: CloneAuthorizer + Send + Sync {
     fn authorize_request(&self, req: RequestBuilder) -> RequestBuilder;
 }
 
+#[derive(Clone)]
 pub struct Jira {
     client: Client,
     authorizer: Box<dyn Authorizer>,
+}
+
+impl Clone for Box<dyn Authorizer> {
+    fn clone(&self) -> Self {
+        self.clone_authorizer()
+    }
+}
+
+trait CloneAuthorizer {
+    fn clone_authorizer(&self) -> Box<dyn Authorizer>;
+}
+
+impl<T> CloneAuthorizer for T
+where
+    T: Authorizer + Clone + 'static,
+{
+    fn clone_authorizer(&self) -> Box<dyn Authorizer> {
+        Box::new(self.clone())
+    }
 }
 
 impl Jira {
@@ -113,6 +133,7 @@ impl Jira {
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
+#[derive(Clone)]
 pub struct Slack {
     token: String,
     client: reqwest::blocking::Client,
@@ -148,10 +169,12 @@ impl Slack {
     }
 }
 
-pub trait Action<T> {
+pub trait Action<T>: Send + Sync {
     fn do_action(&self, input: T) -> Result<(), Error>;
+    fn box_clone(&self) -> Box<dyn Action<T>>;
 }
 
+#[derive(Clone)]
 pub struct PostJiraToSlack {
     jira: Jira,
     slack: Slack,
@@ -168,6 +191,7 @@ impl PostJiraToSlack {
     }
 }
 
+#[derive(Clone)]
 pub struct PostJiraInput {
     jql: String,
     slack_channel: String,
@@ -181,5 +205,9 @@ impl Action<PostJiraInput> for PostJiraToSlack {
             .post_message(input.slack_channel, &mbe_awaiting_review_issues)?;
 
         Ok(())
+    }
+
+    fn box_clone(&self) -> Box<dyn Action<PostJiraInput>> {
+        Box::new((*self).clone())
     }
 }
