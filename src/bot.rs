@@ -6,20 +6,20 @@ use slack_api as slack;
 use std::cmp::Ordering;
 use std::{fmt, result::Result, vec};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Response {
     #[serde(rename = "startAt")]
     start_at: i32,
     issues: Vec<Issue>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct Issue {
     key: String,
     fields: Fields,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct Fields {
     summary: String,
     updated: DateTime<Utc>,
@@ -27,7 +27,7 @@ struct Fields {
     priority: Priority,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct Priority {
     id: String,
 }
@@ -41,11 +41,10 @@ struct IssueReport {
     priority: i64,
 }
 
-impl fmt::Display for Response {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::convert::Into<String> for Response {
+    fn into(self) -> String {
         if self.issues.len() == 0 {
-            return write!(
-                f,
+            return format!(
                 r##"Great job @mbe-devs . No tickets to review.
                 Should we all take a day off?"##
             );
@@ -76,13 +75,18 @@ impl fmt::Display for Response {
                 issue.issue_link, issue.summary, issue.days,
             ))
         }
-        write!(
-            f,
+        format!(
             r##"@mbe-devs: the following issues need attention.
 ```{}```
 "##,
             issue_list,
         )
+    }
+}
+
+impl std::convert::From<&Response> for std::string::String {
+    fn from(_: &Response) -> Self {
+        "".to_string()
     }
 }
 
@@ -130,13 +134,17 @@ impl Slack {
         Ok(s)
     }
 
-    pub fn post_message(&self, channel: String, response: &Response) -> Result<(), Error> {
+    pub fn post_message<Response: Into<String>>(
+        &self,
+        channel: String,
+        response: Response,
+    ) -> Result<(), Error> {
         chat::post_message(
             &self.client,
             &self.token,
             &chat::PostMessageRequest {
                 channel: &channel,
-                text: &response.to_string(),
+                text: &response.into(),
                 link_names: Some(true),
                 ..chat::PostMessageRequest::default()
             },
