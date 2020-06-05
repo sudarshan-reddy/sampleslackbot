@@ -36,8 +36,7 @@ fn main() {
         .get_jira_issues(JQL_MBE_AWAITING_REVIEW.to_string())
         .unwrap();
 
-    let issues_in_string: String = mbe_awaiting_review_issues.clone().into();
-    println!("{}", issues_in_string);
+    println!("{}", String::from(&mbe_awaiting_review_issues));
 
     let bot = bot::Slack::new(slack_token).unwrap();
 
