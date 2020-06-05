@@ -128,21 +128,57 @@ impl Slack {
         Ok(s)
     }
 
-    pub fn post_message<Response: Into<String>>(
+    pub fn post_message<Message: Into<String>>(
         &self,
         channel: String,
-        response: Response,
+        msg: Message,
     ) -> Result<(), Error> {
         chat::post_message(
             &self.client,
             &self.token,
             &chat::PostMessageRequest {
                 channel: &channel,
-                text: &response.into(),
+                text: &msg.into(),
                 link_names: Some(true),
                 ..chat::PostMessageRequest::default()
             },
         )?;
+
+        Ok(())
+    }
+}
+
+pub trait Action<T> {
+    fn do_action(&self, input: T) -> Result<(), Error>;
+}
+
+pub struct PostJiraToSlack {
+    jira: Jira,
+    slack: Slack,
+}
+
+impl PostJiraToSlack {
+    pub fn new(jira: Jira, slack: Slack) -> Self {
+        return {
+            PostJiraToSlack {
+                jira: jira,
+                slack: slack,
+            }
+        };
+    }
+}
+
+pub struct PostJiraInput {
+    jql: String,
+    slack_channel: String,
+}
+
+impl Action<PostJiraInput> for PostJiraToSlack {
+    fn do_action(&self, input: PostJiraInput) -> Result<(), Error> {
+        let mbe_awaiting_review_issues = self.jira.get_jira_issues(input.jql.to_string())?;
+
+        self.slack
+            .post_message(input.slack_channel, &mbe_awaiting_review_issues)?;
 
         Ok(())
     }
