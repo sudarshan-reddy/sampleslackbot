@@ -215,12 +215,12 @@ impl PostJiraToSlack {
 
 #[derive(Clone)]
 pub struct PostJiraInput {
-    jql: String,
-    slack_channel: String,
+    pub jql: String,
+    pub slack_channel: String,
 }
 
 impl PostJiraToSlack {
-    pub async fn post_message(&self, input: PostJiraInput) -> Result<(), Error> {
+    pub async fn do_action(&self, input: PostJiraInput) -> Result<(), Error> {
         let mbe_awaiting_review_issues = self.jira.get_jira_issues(input.jql.to_string()).await?;
 
         self.slack

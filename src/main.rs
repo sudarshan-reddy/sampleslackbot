@@ -9,9 +9,6 @@ use actix_web::{web, web::Data, App, HttpRequest, HttpResponse, HttpServer, Resp
 mod bot;
 mod server;
 
-static JQL_MBE_AWAITING_REVIEW: &str =
-    "project%20%3D%20%22Mobile%20Backend%22%20and%20status%20%3D%20%22Awaiting%20Review%22";
-
 static ADDR: &str = "127.0.0.1:8001";
 
 #[derive(Clone)]
@@ -44,7 +41,7 @@ async fn main() -> std::io::Result<()> {
     let data = Arc::new(Mutex::new(post_jira_to_slack));
     HttpServer::new(move || {
         App::new()
-            //.data(data.clone())
+            .data(data.clone())
             .service(web::resource("/invoke").route(web::post().to(server::call)))
     })
     .bind(&ADDR)?
