@@ -1,10 +1,9 @@
 use bot::PostJiraToSlack;
 use reqwest::RequestBuilder;
-use serde::Deserialize;
 use std::env;
 use std::sync::{Arc, Mutex};
 
-use actix_web::{web, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 
 mod bot;
 mod server;

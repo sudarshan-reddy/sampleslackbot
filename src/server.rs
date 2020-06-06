@@ -1,6 +1,6 @@
 use actix_web::{
     web::{Data, Json},
-    HttpRequest, HttpResponse,
+    HttpResponse,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
