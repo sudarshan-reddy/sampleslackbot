@@ -1,17 +1,23 @@
 use actix_web::{
     web::{Data, Json},
-    HttpResponse,
+    HttpRequest, HttpResponse,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
 
-use super::bot::{Action, PostJiraInput};
+use super::bot::PostJiraToSlack;
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CallRequest {
-    channels: Vec<String>,
+    channel: Vec<String>,
 }
 
-pub fn call(body: Json<CallRequest>, bot: Data<Box<dyn Action<PostJiraInput>>>) -> HttpResponse {
-    println!("{:?}", body);
-    HttpResponse::Ok().body(format!("ok"))
+//pub fn call(data: Json<CallRequest>, _bot: Data<Arc<Mutex<PostJiraToSlack>>>) -> HttpResponse {
+
+pub async fn call(data: Json<CallRequest>) -> HttpResponse {
+    println!("called");
+    println!("{:?}", data);
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(format!("ok"))
 }

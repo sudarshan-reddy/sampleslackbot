@@ -1,12 +1,10 @@
-use bot::{Action, Jira, PostJiraInput, PostJiraToSlack, Slack};
-use reqwest::blocking::RequestBuilder;
+use bot::PostJiraToSlack;
+use reqwest::RequestBuilder;
+use serde::Deserialize;
 use std::env;
+use std::sync::{Arc, Mutex};
 
-use actix_web::{
-    get, web,
-    web::{Data, Json},
-    App, HttpRequest, HttpResponse, HttpServer,
-};
+use actix_web::{web, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
 
 mod bot;
 mod server;
@@ -40,12 +38,13 @@ async fn main() -> std::io::Result<()> {
     };
 
     let jira = bot::Jira::new(Box::new(auth));
-    let slack = bot::Slack::new(slack_token).unwrap();
+    let slack = bot::Slack::new(&slack_token).unwrap();
 
     let post_jira_to_slack = PostJiraToSlack::new(jira.clone(), slack.clone());
+    let data = Arc::new(Mutex::new(post_jira_to_slack));
     HttpServer::new(move || {
         App::new()
-            .data(post_jira_to_slack.clone())
+            //.data(data.clone())
             .service(web::resource("/invoke").route(web::post().to(server::call)))
     })
     .bind(&ADDR)?

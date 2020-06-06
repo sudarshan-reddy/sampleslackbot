@@ -1,9 +1,9 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use reqwest::{blocking::Client, blocking::RequestBuilder, Method};
+use reqwest::{Client, Method, RequestBuilder};
 use serde::{Deserialize, Serialize};
-use slack::chat;
-use slack_api as slack;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::{result::Result, vec};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -88,12 +88,6 @@ pub trait Authorizer: CloneAuthorizer + Send + Sync {
     fn authorize_request(&self, req: RequestBuilder) -> RequestBuilder;
 }
 
-#[derive(Clone)]
-pub struct Jira {
-    client: Client,
-    authorizer: Box<dyn Authorizer>,
-}
-
 impl Clone for Box<dyn Authorizer> {
     fn clone(&self) -> Self {
         self.clone_authorizer()
@@ -113,6 +107,34 @@ where
     }
 }
 
+#[derive(Clone)]
+pub struct BearerTokenAuthorizer {
+    token_key: String,
+    token_value: String,
+}
+
+impl Authorizer for BearerTokenAuthorizer {
+    fn authorize_request(&self, req: RequestBuilder) -> RequestBuilder {
+        req.header(reqwest::header::AUTHORIZATION, self.token_value.clone())
+    }
+}
+
+impl BearerTokenAuthorizer {
+    fn new(key: &str, value: String) -> Self {
+        let value = format!("Bearer {}", value);
+        BearerTokenAuthorizer {
+            token_key: key.to_string(),
+            token_value: value,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Jira {
+    client: Client,
+    authorizer: Box<dyn Authorizer>,
+}
+
 impl Jira {
     pub fn new(authorizer: Box<dyn Authorizer>) -> Self {
         Jira {
@@ -121,11 +143,11 @@ impl Jira {
         }
     }
 
-    pub fn get_jira_issues(&self, jql: String) -> Result<Response, Error> {
+    pub async fn get_jira_issues(&self, jql: String) -> Result<Response, Error> {
         let url = format!("https://zalora.atlassian.net/rest/api/3/search?jql={}", jql);
         let req = self.client.request(Method::GET, &url);
-        let res = self.authorizer.authorize_request(req).send()?;
-        let text = res.text()?;
+        let res = self.authorizer.authorize_request(req).send().await?;
+        let text = res.text().await?;
         let resp: Response = serde_json::from_str(&text)?;
         Ok(resp)
     }
@@ -136,42 +158,42 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 #[derive(Clone)]
 pub struct Slack {
     token: String,
-    client: reqwest::blocking::Client,
+    client: Client,
+    authorizer: Box<dyn Authorizer>,
 }
 
 impl Slack {
-    pub fn new(token: String) -> Result<Self, Error> {
-        let client = slack::default_client()?;
+    pub fn new(token: &str) -> Result<Self, Error> {
         let s = Slack {
-            token: token,
-            client: client,
+            token: token.to_string(),
+            client: Client::new(),
+            authorizer: Box::new(BearerTokenAuthorizer::new("token", token.to_string())),
         };
         Ok(s)
     }
 
-    pub fn post_message<Message: Into<String>>(
+    pub async fn post_message<Message: Into<String>>(
         &self,
         channel: String,
         msg: Message,
     ) -> Result<(), Error> {
-        chat::post_message(
-            &self.client,
-            &self.token,
-            &chat::PostMessageRequest {
-                channel: &channel,
-                text: &msg.into(),
-                link_names: Some(true),
-                ..chat::PostMessageRequest::default()
-            },
-        )?;
+        let url = format!("https://slack.com/api/chat.postMessage");
+        let mut req = self.client.request(Method::POST, &url);
+        req = self.authorizer.authorize_request(req);
+
+        let mut m = HashMap::new();
+        m.insert("channel", channel);
+        m.insert("text", msg.into());
+        m.insert("link_names", "true".to_string());
+        req.json(&m).send().await?;
 
         Ok(())
     }
 }
 
+#[async_trait]
 pub trait Action<T>: Send + Sync {
-    fn do_action(&self, input: T) -> Result<(), Error>;
-    fn box_clone(&self) -> Box<dyn Action<T>>;
+    async fn do_action(&self, input: T) -> Result<(), Error>;
 }
 
 #[derive(Clone)]
@@ -197,17 +219,14 @@ pub struct PostJiraInput {
     slack_channel: String,
 }
 
-impl Action<PostJiraInput> for PostJiraToSlack {
-    fn do_action(&self, input: PostJiraInput) -> Result<(), Error> {
-        let mbe_awaiting_review_issues = self.jira.get_jira_issues(input.jql.to_string())?;
+impl PostJiraToSlack {
+    pub async fn post_message(&self, input: PostJiraInput) -> Result<(), Error> {
+        let mbe_awaiting_review_issues = self.jira.get_jira_issues(input.jql.to_string()).await?;
 
         self.slack
-            .post_message(input.slack_channel, &mbe_awaiting_review_issues)?;
+            .post_message(input.slack_channel, &mbe_awaiting_review_issues)
+            .await?;
 
         Ok(())
-    }
-
-    fn box_clone(&self) -> Box<dyn Action<PostJiraInput>> {
-        Box::new((*self).clone())
     }
 }
