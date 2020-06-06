@@ -23,7 +23,7 @@ EXPORT SLACK_BOT_TOKEN="your slackbot/app's api token"
 EXPORT SLACK_CHANNEL="channel the message should go to"
 ```
 
-``bash
+```bash
 cargo run
 ```
 
