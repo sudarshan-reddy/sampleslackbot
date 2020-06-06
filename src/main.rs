@@ -8,7 +8,7 @@ use actix_web::{web, App, HttpServer};
 mod bot;
 mod server;
 
-static ADDR: &str = "127.0.0.1:8001";
+static ADDR: &str = "0.0.0.0:8001";
 
 #[derive(Clone)]
 pub struct BasicAuth {
@@ -36,7 +36,7 @@ async fn main() -> std::io::Result<()> {
     let jira = bot::Jira::new(Box::new(auth));
     let slack = bot::Slack::new(&slack_token).unwrap();
 
-    let post_jira_to_slack = PostJiraToSlack::new(jira.clone(), slack.clone());
+    let post_jira_to_slack = PostJiraToSlack::new(jira, slack);
     let data = Arc::new(Mutex::new(post_jira_to_slack));
     HttpServer::new(move || {
         App::new()
