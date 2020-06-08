@@ -1,13 +1,21 @@
-FROM rust:1.43.1-stretch as rustbuild
+FROM rust:1.44.0-stretch as builder
 
-workdir /app
+WORKDIR /app
 
-COPY Cargo.toml .
-COPY Cargo.lock .
-COPY src/ src
+COPY . .
 
-RUN cargo build --release
+RUN cargo install --path .
 
+FROM debian:buster-slim
+WORKDIR /app
 
-CMD /app/target/release/dontslack 
+COPY --from=builder /app /app
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates
+
+RUN update-ca-certificates
+
+EXPOSE 8001
+CMD ["/app/target/release/dontslack"]
 
