@@ -8,7 +8,7 @@ use actix_web::{middleware, web, App, HttpServer};
 mod bot;
 mod server;
 
-static ADDR: &str = "127.0.0.1:8001";
+static ADDR: &str = "0.0.0.0:8001";
 
 #[derive(Clone)]
 pub struct BasicAuth {
