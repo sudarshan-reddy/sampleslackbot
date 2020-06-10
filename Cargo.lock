@@ -503,6 +503,7 @@ dependencies = [
  "chrono",
  "env_logger",
  "mime",
+ "percent-encoding",
  "reqwest",
  "serde",
  "serde_json",

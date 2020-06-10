@@ -6,6 +6,11 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::{result::Result, vec};
 
+pub struct Message {
+    resp: Response,
+    at: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Response {
     #[serde(rename = "startAt")]
@@ -41,18 +46,19 @@ struct IssueReport {
     priority: i64,
 }
 
-impl std::convert::From<&Response> for std::string::String {
-    fn from(r: &Response) -> Self {
-        if r.issues.len() == 0 {
+impl std::convert::From<&Message> for std::string::String {
+    fn from(m: &Message) -> Self {
+        if m.resp.issues.len() == 0 {
             return format!(
-                r##"Great job @mbe-devs . No tickets to review.
-                Should we all take a day off?"##
+                r##"Great job {} . No tickets to review.
+                Should we all take a day off?"##,
+                m.at,
             );
         }
 
         let mut issue_list = String::new();
         let mut issues = vec::Vec::new();
-        for issue in &r.issues {
+        for issue in &m.resp.issues {
             issues.push(IssueReport {
                 issue_link: format!("https://zalora.atlassian.net/browse/{}", issue.key),
                 summary: issue.fields.summary.clone(),
@@ -76,10 +82,10 @@ impl std::convert::From<&Response> for std::string::String {
             ))
         }
         format!(
-            r##"@mbe-devs: the following issues need attention.
+            r##"{}: the following issues need attention.
 ```{}```
 "##,
-            issue_list,
+            m.at, issue_list,
         )
     }
 }
@@ -217,15 +223,19 @@ impl PostJiraToSlack {
 pub struct PostJiraInput {
     pub jql: String,
     pub slack_channel: String,
+    pub message: String,
 }
 
 impl PostJiraToSlack {
     pub async fn do_action(&self, input: PostJiraInput) -> Result<(), Error> {
-        let mbe_awaiting_review_issues = self.jira.get_jira_issues(input.jql.to_string()).await?;
+        let issues = self.jira.get_jira_issues(input.jql.to_string()).await?;
 
-        self.slack
-            .post_message(input.slack_channel, &mbe_awaiting_review_issues)
-            .await?;
+        let msg = Message {
+            resp: issues,
+            at: input.message,
+        };
+
+        self.slack.post_message(input.slack_channel, &msg).await?;
 
         Ok(())
     }
