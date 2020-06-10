@@ -100,7 +100,7 @@ impl Clone for Box<dyn Authorizer> {
     }
 }
 
-trait CloneAuthorizer {
+pub trait CloneAuthorizer {
     fn clone_authorizer(&self) -> Box<dyn Authorizer>;
 }
 
