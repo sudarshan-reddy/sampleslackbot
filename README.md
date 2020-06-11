@@ -16,7 +16,7 @@ cargo build
 The following environment variables are required
 
 ```bash
-EXPORT JIRA_USER_NAME="your zalora email id"
+EXPORT JIRA_USER_NAME="your jira login id"
 EXPORT JIRA_API_TOKEN="your jira api token"
 EXPORT SLACK_BOT_TOKEN="your slackbot/app's api token"
 EXPORT SLACK_CHANNEL="channel the message should go to"
