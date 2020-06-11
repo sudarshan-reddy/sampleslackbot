@@ -18,9 +18,6 @@ pub struct CallRequest {
     at: String,
 }
 
-static JQL_MBE_AWAITING_REVIEW: &str =
-    "project%20%3D%20%22Mobile%20Backend%22%20and%20status%20%3D%20%22Awaiting%20Review%22";
-
 pub async fn call(data: Json<CallRequest>, bot: Data<Arc<Mutex<PostJiraToSlack>>>) -> HttpResponse {
     let encoded_jql = utf8_percent_encode(&data.jql, FRAGMENT).to_string();
     println!("{}", encoded_jql);

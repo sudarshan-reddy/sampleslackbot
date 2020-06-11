@@ -1,8 +1,7 @@
-# DontSlack
+# SimpleSlackBot 
 
-Is a slack bot that tells mbe devs (for now) what issues are awaiting review
+Just a POC for a simple server based application in Rust.
 
-It sorts them by their priority and number of days since the last update.
 
 # To build
 

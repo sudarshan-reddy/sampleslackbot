@@ -6,6 +6,8 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::{result::Result, vec};
 
+const JIRA_PREFIX: &'static str = "https://somejiraprefix.com";
+
 pub struct Message {
     resp: Response,
     at: String,
@@ -60,7 +62,7 @@ impl std::convert::From<&Message> for std::string::String {
         let mut issues = vec::Vec::new();
         for issue in &m.resp.issues {
             issues.push(IssueReport {
-                issue_link: format!("https://zalora.atlassian.net/browse/{}", issue.key),
+                issue_link: format!("{}/browse/{}", JIRA_PREFIX, issue.key),
                 summary: issue.fields.summary.clone(),
                 priority: issue.fields.priority.id.parse::<i64>().unwrap(),
                 easy_label: "".to_string(),
@@ -150,7 +152,7 @@ impl Jira {
     }
 
     pub async fn get_jira_issues(&self, jql: String) -> Result<Response, Error> {
-        let url = format!("https://zalora.atlassian.net/rest/api/3/search?jql={}", jql);
+        let url = format!("{}/rest/api/3/search?jql={}", JIRA_PREFIX, jql);
         let req = self.client.request(Method::GET, &url);
         let res = self.authorizer.authorize_request(req).send().await?;
         let text = res.text().await?;
