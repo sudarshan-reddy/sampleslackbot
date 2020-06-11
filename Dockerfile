@@ -17,5 +17,5 @@ RUN apt-get update \
 RUN update-ca-certificates
 
 EXPOSE 8001
-CMD ["/app/target/release/dontslack"]
+CMD ["/app/target/release/sampleslackbot"]
 
