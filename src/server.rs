@@ -9,7 +9,8 @@ use std::sync::{Arc, Mutex};
 use super::bot::{PostJiraInput, PostJiraToSlack};
 
 /// https://url.spec.whatwg.org/#fragment-percent-encode-set
-const FRAGMENT: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
+const FRAGMENT: &AsciiSet =
+    &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CallRequest {
@@ -18,7 +19,10 @@ pub struct CallRequest {
     at: String,
 }
 
-pub async fn call(data: Json<CallRequest>, bot: Data<Arc<Mutex<PostJiraToSlack>>>) -> HttpResponse {
+pub async fn call(
+    data: Json<CallRequest>,
+    bot: Data<Arc<Mutex<PostJiraToSlack>>>,
+) -> HttpResponse {
     let encoded_jql = utf8_percent_encode(&data.jql, FRAGMENT).to_string();
     println!("{}", encoded_jql);
     let guard = bot.lock().unwrap();
@@ -31,7 +35,5 @@ pub async fn call(data: Json<CallRequest>, bot: Data<Arc<Mutex<PostJiraToSlack>>
         .await
         .unwrap();
 
-    HttpResponse::Ok()
-        .content_type("application/json")
-        .body(format!("ok"))
+    HttpResponse::Ok().content_type("application/json").body(format!("ok"))
 }

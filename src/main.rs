@@ -31,10 +31,7 @@ async fn main() -> std::io::Result<()> {
     let api_token = env::var("JIRA_API_TOKEN").expect("JIRA_API_TOKEN");
     let slack_token = env::var("SLACK_BOT_TOKEN").expect("SLACK_BOT_TOKEN");
 
-    let auth = BasicAuth {
-        user: user_name,
-        api_token: api_token,
-    };
+    let auth = BasicAuth { user: user_name, api_token: api_token };
 
     let jira = bot::Jira::new(Box::new(auth));
     let slack = bot::Slack::new(&slack_token).unwrap();
@@ -51,7 +48,9 @@ async fn main() -> std::io::Result<()> {
             )
             .wrap(middleware::Logger::default())
             .data(data.clone())
-            .service(web::resource("/invoke").route(web::post().to(server::call)))
+            .service(
+                web::resource("/invoke").route(web::post().to(server::call)),
+            )
     })
     .bind(&ADDR)?
     .run()

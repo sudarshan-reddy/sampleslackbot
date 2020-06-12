@@ -64,7 +64,10 @@ impl std::convert::From<&Message> for std::string::String {
                 None => 9999,
             };
             issues.push(IssueReport {
-                issue_link: format!("https://zalora.atlassian.net/browse/{}", issue.key),
+                issue_link: format!(
+                    "https://zalora.atlassian.net/browse/{}",
+                    issue.key
+                ),
                 summary: issue.fields.summary.clone(),
                 priority: p,
                 easy_label: "".to_string(),
@@ -147,14 +150,17 @@ pub struct Jira {
 
 impl Jira {
     pub fn new(authorizer: Box<dyn Authorizer>) -> Self {
-        Jira {
-            client: Client::new(),
-            authorizer: authorizer,
-        }
+        Jira { client: Client::new(), authorizer: authorizer }
     }
 
-    pub async fn get_jira_issues(&self, jql: String) -> Result<Response, Error> {
-        let url = format!("https://zalora.atlassian.net/rest/api/3/search?jql={}", jql);
+    pub async fn get_jira_issues(
+        &self,
+        jql: String,
+    ) -> Result<Response, Error> {
+        let url = format!(
+            "https://zalora.atlassian.net/rest/api/3/search?jql={}",
+            jql
+        );
         let req = self.client.request(Method::GET, &url);
         let res = self.authorizer.authorize_request(req).send().await?;
         let text = res.text().await?;
@@ -177,7 +183,10 @@ impl Slack {
         let s = Slack {
             token: token.to_string(),
             client: Client::new(),
-            authorizer: Box::new(BearerTokenAuthorizer::new("token", token.to_string())),
+            authorizer: Box::new(BearerTokenAuthorizer::new(
+                "token",
+                token.to_string(),
+            )),
         };
         Ok(s)
     }
@@ -214,12 +223,7 @@ pub struct PostJiraToSlack {
 
 impl PostJiraToSlack {
     pub fn new(jira: Jira, slack: Slack) -> Self {
-        return {
-            PostJiraToSlack {
-                jira: jira,
-                slack: slack,
-            }
-        };
+        PostJiraToSlack { jira: jira, slack: slack }
     }
 }
 
@@ -234,10 +238,7 @@ impl PostJiraToSlack {
     pub async fn do_action(&self, input: PostJiraInput) -> Result<(), Error> {
         let issues = self.jira.get_jira_issues(input.jql.to_string()).await?;
 
-        let msg = Message {
-            resp: issues,
-            at: input.message,
-        };
+        let msg = Message { resp: issues, at: input.message };
 
         self.slack.post_message(input.slack_channel, &msg).await?;
 
